@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Browsing Buddy</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Browsing Buddy</h1>
+  <div class="container">
+    <section class="activity">
+      <h2>Today's Activity</h2>
+      <ul id="activityList"></ul>
+      <h2>Previous Days</h2>
+      <ul id="previousActivityList"></ul>
+    </section>
+    <section class="focus-mode">
+      <h2>Focus Mode</h2>
+      <button id="startFocus">Start Focus</button>
+      <input type="number" id="focusDuration" placeholder="Minutes">
+    </section>
+    <section class="alerts">
+      <h2>Manage Sites</h2>
+      <input type="text" id="blockSite" placeholder="Site to block">
+      <button id="addBlock">Block Site</button>
+      <ul id="blockList"></ul>
+    </section>
+  </div>
+  <canvas id="usageChart"></canvas>
+  <script src="chart.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
