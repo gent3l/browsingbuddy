@@ -15,4 +15,6 @@ A Chrome Extension that keeps track of the time you spend on various websites, e
 
 ## Contributors
 [@gent3l](https://github.com/gent3l)
-
+[@Aashish Suryawanshi](https://github.com/Aashish07-Alpha)
+[@Vishal3151](https://github.com/Vishal3151)
+[@diptadeep21](https://github.com/diptadeep21)
