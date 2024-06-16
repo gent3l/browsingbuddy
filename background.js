@@ -1,56 +1,131 @@
-let timeTracker = {};
-let blockList = [];
-let focusMode = false;
-let focusEndTime = 0;
-
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.set({ timeTracker: {}, blockList: [], focusMode: false, focusEndTime: 0, previousDays: {} });
-  chrome.alarms.create('checkTime', { periodInMinutes: 1 });
-});
-
-chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm.name === 'checkTime') {
-    updateTimeSpent();
-    checkFocusMode();
-    saveDailyUsage();
+function isValidURL(givenURL){
+  if(givenURL){
+    if(givenURL.includes(".")){
+      return true;
+    }
+    else{
+      return false;
+    }
   }
-});
-
-function updateTimeSpent() {
-  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-    const currentUrl = new URL(tabs[0].url).hostname;
-    chrome.storage.sync.get(['timeTracker'], data => {
-      let tracker = data.timeTracker;
-      tracker[currentUrl] = (tracker[currentUrl] || 0) + 1;
-      chrome.storage.sync.set({ timeTracker: tracker });
-    });
-  });
+  else{
+    return false;
+  }
 }
+function secondsToString(seconds,compressed=false){
+    let hours = parseInt(seconds/3600);
+    seconds = seconds%3600;
+    let minutes= parseInt(seconds/60);
+    seconds = seconds%60;
+    let timeString = "";
+    if(hours){
+      timeString += hours + " hrs ";
+    }
+    if(minutes){
+      timeString += minutes + " min ";
+    }
+    if(seconds){
+      timeString += seconds+ " sec ";
+    }
+    if(!compressed){
+      return timeString;
+    }
+    else{
+      if(hours){
+        return(`${hours}h`);
+      }
+      if(minutes){
+        return(`${minutes}m`);
+      }
+      if(seconds){
+        return(`${seconds}s`);
+      }
+    }
+  };
 
-function checkFocusMode() {
-  chrome.storage.sync.get(['focusMode', 'focusEndTime'], data => {
-    if (data.focusMode && Date.now() >= data.focusEndTime) {
-      chrome.storage.sync.set({ focusMode: false });
-      focusMode = false;
+function getDateString(nDate){
+  let nDateDate=nDate.getDate();
+  let nDateMonth=nDate.getMonth()+1;
+  let nDateYear=nDate.getFullYear();
+  if(nDateDate<10){nDateDate="0"+nDateDate;};
+  if(nDateMonth<10){nDateMonth="0"+nDateMonth;};
+  let presentDate = nDateYear+"-"+nDateMonth+"-"+nDateDate;
+  return presentDate;
+}
+function getDomain(tablink){
+  if(tablink){
+    let url =  tablink[0].url;
+    return url.split("/")[2];
+  }
+  else{
+    return null;
+  }
+};
+
+function updateTime(){
+    chrome.tabs.query({"active":true,"lastFocusedWindow": true},function(activeTab){
+        let domain = getDomain(activeTab);
+        if(isValidURL(domain)){
+          let today = new Date();
+        let presentDate = getDateString(today);
+        let myObj = {};
+        myObj[presentDate]={};
+        myObj[presentDate][domain] = "";
+        let timeSoFar = 0;
+        chrome.storage.local.get(presentDate,function(storedObject){
+            if(storedObject[presentDate]){
+              if(storedObject[presentDate][domain]){
+                timeSoFar = storedObject[presentDate][domain]+1;
+                storedObject[presentDate][domain] = timeSoFar;
+                chrome.storage.local.set(storedObject,function(){
+                    console.log("Set "+domain+" at "+storedObject[presentDate][domain]);
+                    chrome.browserAction.setBadgeText({'text':secondsToString(timeSoFar,true)});
+                });
+              }
+              else{
+                timeSoFar++;
+                storedObject[presentDate][domain] = timeSoFar;
+                chrome.storage.local.set(storedObject,function(){
+                  console.log("Set "+domain+" at "+storedObject[presentDate][domain]);
+                  chrome.browserAction.setBadgeText({'text':secondsToString(timeSoFar,true)});
+                })
+              }
+            }
+            else{
+              timeSoFar++;
+              storedObject[presentDate] = {};
+              storedObject[presentDate][domain] = timeSoFar;
+              chrome.storage.local.set(storedObject,function(){
+                console.log("Set "+domain+" at "+storedObject[presentDate][domain]);
+                chrome.browserAction.setBadgeText({'text':secondsToString(timeSoFar,true)});
+              })
+            }
+        });
+        }
+      else{
+        chrome.browserAction.setBadgeText({'text':''});
+      }
+    });
+
+    // console.log(timeSoFar);
+};
+
+var intervalID;
+
+intervalID = setInterval(updateTime,1000);
+setInterval(checkFocus,500)
+
+function checkFocus(){
+  chrome.windows.getCurrent(function(window){
+    if(window.focused){
+      if(!intervalID){
+        intervalID = setInterval(updateTime,1000);
+      }
+    }
+    else{
+      if(intervalID){
+        clearInterval(intervalID);
+        intervalID=null;
+      }
     }
   });
 }
-
-function saveDailyUsage() {
-  let today = new Date().toISOString().split('T')[0];
-  chrome.storage.sync.get(['timeTracker', 'previousDays'], data => {
-    let previousDays = data.previousDays;
-    previousDays[today] = data.timeTracker;
-    chrome.storage.sync.set({ previousDays: previousDays, timeTracker: {} });
-  });
-}
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.active) {
-    chrome.storage.sync.get(['blockList', 'focusMode'], data => {
-      if (data.blockList.includes(new URL(tab.url).hostname) || data.focusMode) {
-        chrome.tabs.remove(tabId);
-      }
-    });
-  }
-});
