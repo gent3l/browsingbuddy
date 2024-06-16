@@ -14,5 +14,5 @@ A Chrome Extension that keeps track of the time you spend on various websites, e
 * Quick summary of online time trends for the past week.  <br> <img src = "images/Week.gif" height = "400">
 
 ## Contributors
-[@Shankar203](https://github.com/Shankar203)
-[@vrrao01](https://github.com/vrrao01)
+[@gent3l](https://github.com/gent3l)
+
